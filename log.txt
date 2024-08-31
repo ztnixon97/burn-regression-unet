@@ -1,0 +1,4 @@
+[?1049hInput shape: Shape { dims: [1, 2, 512, 512] }
+Target shape: Shape { dims: [1, 1, 512, 512] }
+loss: Tensor { primitive: AutodiffTensor { primitive: { id: TensorId { value: 416 }, shape: [1, 1, 512, 512], should_drop: true, backend: "jit<wgpu>", device: DiscreteGpu(0) }, node: Node { parents: [NodeID { value: 789 }], order: 63, id: NodeID { value: 790 }, requirement: GradInBackward, properties: ComputeBound, client: MutexClient }, rc: NodeID { value: 790 } } }
+[?1049l[?25h

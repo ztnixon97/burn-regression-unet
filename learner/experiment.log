@@ -1,0 +1,108 @@
+2024-08-29T01:34:01.857185Z  INFO burn_fusion::stream::store::base: New execution plan 1 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.859834Z  INFO burn_fusion::stream::store::base: New execution plan 2 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.860003Z  INFO burn_fusion::stream::store::base: New execution plan 3 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.864951Z  INFO burn_fusion::stream::store::base: New execution plan 4 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.865062Z  INFO burn_fusion::stream::store::base: New execution plan 5 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.866624Z  INFO burn_fusion::stream::store::base: New execution plan 6 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.867207Z  INFO burn_fusion::stream::store::base: New execution plan 7 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.868000Z  INFO burn_fusion::stream::store::base: New execution plan 8 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.868693Z  INFO burn_fusion::stream::store::base: New execution plan 9 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.868921Z  INFO burn_fusion::stream::store::base: New execution plan 10 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.868994Z  INFO burn_fusion::stream::store::base: New execution plan 11 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.869167Z  INFO burn_fusion::stream::store::base: New execution plan 12 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.869408Z  INFO burn_fusion::stream::store::base: New execution plan 13 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.869564Z  INFO burn_fusion::stream::store::base: New execution plan 14 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.869625Z  INFO burn_train::learner::train_val: Fitting the model:
+ SimpleUNet {
+  down1: SimpleConv {
+    conv: Conv2d {stride: [1, 1], kernel_size: [3, 3], dilation: [1, 1], groups: 1, padding: Explicit(1, 1), params: 160}
+    bn: BatchNorm {num_features: 16, momentum: 0.1, epsilon: 0.00001, params: 64}
+    relu: Relu
+    params: 224
+  }
+  down2: SimpleConv {
+    conv: Conv2d {stride: [1, 1], kernel_size: [3, 3], dilation: [1, 1], groups: 1, padding: Explicit(1, 1), params: 4640}
+    bn: BatchNorm {num_features: 32, momentum: 0.1, epsilon: 0.00001, params: 128}
+    relu: Relu
+    params: 4768
+  }
+  bottleneck: SimpleConv {
+    conv: Conv2d {stride: [1, 1], kernel_size: [3, 3], dilation: [1, 1], groups: 1, padding: Explicit(1, 1), params: 18496}
+    bn: BatchNorm {num_features: 64, momentum: 0.1, epsilon: 0.00001, params: 256}
+    relu: Relu
+    params: 18752
+  }
+  up1: ConvTranspose2d {channels: [64, 32], stride: [2, 2], kernel_size: [2, 2], dilation: [1, 1], groups: 1, padding: [0, 0], padding_out: [0, 0], params: 8224}
+  upconv1: SimpleConv {
+    conv: Conv2d {stride: [1, 1], kernel_size: [3, 3], dilation: [1, 1], groups: 1, padding: Explicit(1, 1), params: 18464}
+    bn: BatchNorm {num_features: 32, momentum: 0.1, epsilon: 0.00001, params: 128}
+    relu: Relu
+    params: 18592
+  }
+  up2: ConvTranspose2d {channels: [32, 16], stride: [2, 2], kernel_size: [2, 2], dilation: [1, 1], groups: 1, padding: [0, 0], padding_out: [0, 0], params: 2064}
+  upconv2: SimpleConv {
+    conv: Conv2d {stride: [1, 1], kernel_size: [3, 3], dilation: [1, 1], groups: 1, padding: Explicit(1, 1), params: 4624}
+    bn: BatchNorm {num_features: 16, momentum: 0.1, epsilon: 0.00001, params: 64}
+    relu: Relu
+    params: 4688
+  }
+  final_conv: Conv2d {stride: [1, 1], kernel_size: [1, 1], dilation: [1, 1], groups: 1, padding: Valid, params: 17}
+  max_pool: MaxPool2d {kernel_size: [2, 2], stride: [2, 2], padding: Valid, dilation: [1, 1]}
+  params: 57329
+}    
+2024-08-29T01:34:01.869712Z  INFO burn_train::learner::epoch: Executing training step for epoch 1    
+2024-08-29T01:34:01.875556Z  INFO burn_fusion::stream::store::base: New execution plan 15 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.876424Z  INFO burn_fusion::stream::store::base: New execution plan 16 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.878267Z  INFO burn_train::learner::epoch: Iteration 1    
+2024-08-29T01:34:01.878354Z  INFO burn_fusion::stream::store::base: New execution plan 17 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.881475Z  INFO burn_fusion::stream::store::base: New execution plan 18 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.881509Z  INFO burn_fusion::stream::store::base: New execution plan 19 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.882333Z  INFO burn_fusion::stream::store::base: New execution plan 20 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.884759Z  INFO burn_fusion::stream::store::base: New execution plan 21 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.884840Z  INFO burn_fusion::stream::store::base: New execution plan 22 - Operations: 2 - Triggers 1    
+2024-08-29T01:34:01.886353Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "3bqfmpgvtg") }), mode: None }    
+2024-08-29T01:34:01.887079Z  INFO burn_fusion::stream::store::base: New execution plan 23 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.888090Z  INFO burn_fusion::stream::store::base: New execution plan 24 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.888149Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: Some(4), vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "kf89opipsg") }), mode: None }    
+2024-08-29T01:34:01.888584Z  INFO burn_fusion::stream::store::base: New execution plan 25 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.889091Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "qn6laql2qg") }), mode: None }    
+2024-08-29T01:34:01.889453Z  INFO burn_fusion::stream::store::base: New execution plan 26 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.889500Z  INFO burn_fusion::stream::store::base: New execution plan 27 - Operations: 2 - Triggers 1    
+2024-08-29T01:34:01.889524Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [InplaceMapping { pos_input: 0, pos_output: 0 }, InplaceMapping { pos_input: 1, pos_output: 1 }], vectorization_global: Some(4), vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain), (1, Plain), (2, Plain)] }, "hclsc207vs") }), mode: None }    
+2024-08-29T01:34:01.890225Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "efib94qm3o") }), mode: None }    
+2024-08-29T01:34:01.890739Z  INFO burn_fusion::stream::store::base: New execution plan 28 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.890771Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [InplaceMapping { pos_input: 0, pos_output: 0 }], vectorization_global: Some(4), vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain), (1, Plain)] }, "8cjcoaiing") }), mode: None }    
+2024-08-29T01:34:01.891218Z  INFO burn_fusion::stream::store::base: New execution plan 29 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.891445Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [InplaceMapping { pos_input: 0, pos_output: 0 }], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "d848el3pds") }), mode: None }    
+2024-08-29T01:34:01.891953Z  INFO burn_fusion::stream::store::base: New execution plan 30 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.892848Z  INFO burn_fusion::stream::store::base: New execution plan 31 - Operations: 2 - Triggers 1    
+2024-08-29T01:34:01.893009Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [InplaceMapping { pos_input: 0, pos_output: 0 }], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "9500dsjt2c") }), mode: None }    
+2024-08-29T01:34:01.893762Z  INFO burn_fusion::stream::store::base: New execution plan 32 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.893811Z  INFO burn_fusion::stream::store::base: New execution plan 33 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.895010Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "tkfp10b0ho") }), mode: None }    
+2024-08-29T01:34:01.895622Z  INFO burn_fusion::stream::store::base: New execution plan 34 - Operations: 3 - Triggers 1    
+2024-08-29T01:34:01.896217Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "qfisl6hfjg") }), mode: None }    
+2024-08-29T01:34:01.896800Z  INFO burn_fusion::stream::store::base: New execution plan 35 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.898683Z  INFO burn_fusion::stream::store::base: New execution plan 36 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.904389Z  INFO burn_fusion::stream::store::base: New execution plan 37 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.905758Z  INFO burn_fusion::stream::store::base: New execution plan 38 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.906215Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "uq3t5p65tc") }), mode: None }    
+2024-08-29T01:34:01.908157Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: Some(4), vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "0c31m8l794") }), mode: None }    
+2024-08-29T01:34:01.908918Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "88ta5n7krc") }), mode: None }    
+2024-08-29T01:34:01.909466Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [InplaceMapping { pos_input: 0, pos_output: 0 }], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain)] }, "4aa6uteifo") }), mode: None }    
+2024-08-29T01:34:01.911929Z  INFO burn_fusion::stream::store::base: New execution plan 39 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.913198Z  INFO burn_fusion::stream::store::base: New execution plan 40 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.913271Z  INFO burn_fusion::stream::store::base: New execution plan 41 - Operations: 2 - Triggers 1    
+2024-08-29T01:34:01.913333Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: Some(4), vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain), (1, Plain)] }, "9lurl5u79g") }), mode: None }    
+2024-08-29T01:34:01.913836Z  INFO burn_fusion::stream::store::base: New execution plan 42 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.915292Z  INFO burn_fusion::stream::store::base: New execution plan 43 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.915328Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [] }, "eqfp41jrvc") }), mode: None }    
+2024-08-29T01:34:01.915670Z  INFO burn_fusion::stream::store::base: New execution plan 44 - Operations: 2 - Triggers 1    
+2024-08-29T01:34:01.915691Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: Some(4), vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [] }, "0cgu64dvdc") }), mode: None }    
+2024-08-29T01:34:01.916113Z  INFO burn_fusion::stream::store::base: New execution plan 45 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.916189Z  INFO burn_fusion::stream::store::base: New execution plan 46 - Operations: 4 - Triggers 1    
+2024-08-29T01:34:01.916243Z  INFO burn_jit::fusion::kernel: Compiling ... KernelId { type_id: TypeId { t: (17051211658605018533, 1545963153250169692) }, info: Some(Info { value: (KernelSettings { mappings: [], vectorization_global: None, vectorization_partial: [], cube_dim: CubeDim { x: 16, y: 16, z: 1 }, reading_strategy: [(0, Plain), (2, Plain)] }, "8q4oc8r66k") }), mode: None }    
+2024-08-29T01:34:01.916910Z  INFO burn_fusion::stream::store::base: New execution plan 47 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.916937Z  INFO burn_fusion::stream::store::base: New execution plan 48 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.917369Z  INFO burn_fusion::stream::store::base: New execution plan 49 - Operations: 1 - Triggers 1    
+2024-08-29T01:34:01.917387Z  INFO burn_fusion::stream::store::base: New execution plan 50 - Operations: 1 - Triggers 1    
