@@ -1,13 +1,7 @@
 use burn::{
-    data::dataloader::DataLoaderBuilder,
-    optim::AdamConfig,
-    prelude::*,
-    record::CompactRecorder,
-    tensor::{backend::{AutodiffBackend, Backend}, Tensor},
-    train::{
-        metric::{Adaptor, LossInput, LossMetric,}, LearnerBuilder,
-    },
-    backend::Autodiff,
+    backend::Autodiff, data::dataloader::DataLoaderBuilder, optim::AdamConfig, prelude::*, record::CompactRecorder, tensor::{backend::{AutodiffBackend, Backend}, Tensor}, train::{
+        metric::LossMetric, LearnerBuilder,
+    }
 };
 
 
@@ -21,9 +15,9 @@ use burn::backend::Wgpu;
 
 pub mod models;
 pub mod dataset;
-use models::unet::UNetPlusPlus;
+use models::unetplusplus::UNetPlusPlus;
 use models::simple_unet::SimpleUNet as UNet;
-use dataset::dataset::{GeoTiffDataset,GeoTiffBatch, GeoTiffBatcher };
+use dataset::data::{TerrainBatch, TerrainBatcher, TerrainDataset};
 use burn::nn::loss::MseLoss;
 use burn::train::TrainStep;
 use burn::train::ValidStep;
@@ -104,23 +98,23 @@ impl<B: Backend> UNetPlusPlus<B> {
     }
 }
 
-impl<B: AutodiffBackend> TrainStep<GeoTiffBatch<B>, RegressionOutput<B>> for UNetPlusPlus<B> {
-    fn step(&self, batch: GeoTiffBatch<B>) -> TrainOutput<RegressionOutput<B>> {
+impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput<B>> for UNetPlusPlus<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput<B>> {
         // Perform the forward pass and compute the output
         let item = self.forward_regression(batch.inputs, batch.targets);
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
 
-impl<B: Backend> ValidStep<GeoTiffBatch<B>, RegressionOutput<B>> for UNetPlusPlus<B> {
-    fn step(&self, batch: GeoTiffBatch<B>) -> RegressionOutput<B> {
+impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput<B>> for UNetPlusPlus<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput<B> {
         // Perform the forward pass
         self.forward_regression(batch.inputs, batch.targets)
     }
 }
 
-impl<B: AutodiffBackend> TrainStep<GeoTiffBatch<B>, RegressionOutput<B>> for UNet<B> {
-    fn step(&self, batch: GeoTiffBatch<B>) -> TrainOutput<RegressionOutput<B>> {
+impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput<B>> for UNet<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput<B>> {
         // Perform the forward pass and compute the output
 
         let item = self.forward_regression(batch.inputs, batch.targets);
@@ -128,8 +122,8 @@ impl<B: AutodiffBackend> TrainStep<GeoTiffBatch<B>, RegressionOutput<B>> for UNe
     }
 }
 
-impl<B: Backend> ValidStep<GeoTiffBatch<B>, RegressionOutput<B>> for UNet<B> {
-    fn step(&self, batch: GeoTiffBatch<B>) -> RegressionOutput<B> {
+impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput<B>> for UNet<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput<B> {
         // Perform the forward pass
         self.forward_regression(batch.inputs, batch.targets)
     }
@@ -181,23 +175,22 @@ fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfigUnet, dev
     B::seed(config.seed);
 
     // Use the outer backend type B for training
-    let batcher_train = GeoTiffBatcher::<B>::new(device.clone());
+    let batcher_train = TerrainBatcher::<B>::new(device.clone());
 
     // Use the inner backend type for validation
-    let batcher_valid = GeoTiffBatcher::<B::InnerBackend>::new(device.clone());
+    let batcher_valid = TerrainBatcher::<B::InnerBackend>::new(device.clone());
 
     // Create data loaders
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
         .batch_size(1)
         .shuffle(config.seed)
         .num_workers(1)
-        .build(GeoTiffDataset::<B>::from_folder("F:/test_data/val", vec![1]));
-
+        .build(TerrainDataset::test());
     let dataloader_test = DataLoaderBuilder::new(batcher_valid)
         .batch_size(1)
         .shuffle(config.seed)
         .num_workers(1)
-        .build(GeoTiffDataset::<B::InnerBackend>::from_folder("F:/test_data/val", vec![1]));
+        .build(TerrainDataset::test());
 
     
 
