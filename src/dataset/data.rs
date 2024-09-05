@@ -3,6 +3,7 @@ use burn::{
         dataloader::batcher::Batcher,
         dataset::{transform::{Mapper, MapperDataset}, Dataset, InMemDataset},
     },
+    tensor::{backend::Backend, module::interpolate, ops::{InterpolateMode, InterpolateOptions}},
     prelude::*,
 };
 
@@ -15,7 +16,7 @@ use walkdir::WalkDir;
 
 const HEIGHT: usize = 512;
 const WIDTH: usize = 512;
-const INPUT_CHANNELS: usize = 1;
+const INPUT_CHANNELS: usize = 8;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct TerrainDataItemRaw {
@@ -38,8 +39,8 @@ impl Mapper<TerrainDataItemRaw, TerrainDataItem> for BytesToTensorData {
 
         TerrainDataItem { input, target }
     }
-}
 
+}
 
 type MappedDataset = MapperDataset<InMemDataset<TerrainDataItemRaw>, BytesToTensorData, TerrainDataItemRaw>;
 
@@ -104,7 +105,7 @@ impl TerrainDataset {
             _ => panic!("Invalid split"),
         };
 
-        let raw_items = Self::load_folder(folder, vec![1]);
+        let raw_items = Self::load_folder(folder, vec![1,2,3,4,5,6,7,8]);
         let sqlite_dataset  = InMemDataset::new(raw_items);
         let dataset = MapperDataset::new(sqlite_dataset, BytesToTensorData);
 
@@ -130,6 +131,16 @@ impl<B: Backend> TerrainBatcher<B> {
     pub fn new(device: B::Device) -> Self {
         Self { device }
     }
+
+    fn downsample(&self, tensor: Tensor<B, 3>) -> Tensor<B, 3> {
+        let tensor = tensor.unsqueeze();  // Add a batch dimension
+        let output_size = [32, 32];
+        interpolate(
+            tensor,
+            output_size,  // New dimensions after downsampling
+            InterpolateOptions::new(InterpolateMode::Nearest),  // Nearest neighbor interpolation
+        ).squeeze(0)
+    }
 }
 #[derive(Clone, Debug)]
 pub struct TerrainBatch<B: Backend> {
@@ -139,21 +150,26 @@ pub struct TerrainBatch<B: Backend> {
 
 impl<B: Backend> Batcher<TerrainDataItem, TerrainBatch<B>> for TerrainBatcher<B> {
     fn batch(&self, items: Vec<TerrainDataItem>) -> TerrainBatch<B> {
+        // Collect and downsample the inputs
         let inputs: Vec<_> = items
             .iter()
             .map(|item| {
-                let tensor = Tensor::<B,3>::from_floats(item.input.clone(), &self.device).unsqueeze();
-                tensor
+                let tensor = Tensor::<B, 3>::from_floats(item.input.clone(), &self.device);
+                let downsampled = self.downsample(tensor).unsqueeze();  // Downsample input
+                downsampled
             })
             .collect();
-        
+
+        // Collect and downsample the targets
         let targets: Vec<_> = items
             .iter()
             .map(|item| {
-                let tensor = Tensor::<B,3>::from_floats(item.target.clone(), &self.device).unsqueeze();
-                tensor
+                let tensor = Tensor::<B, 3>::from_floats(item.target.clone(), &self.device);
+                let downsampled = self.downsample(tensor).unsqueeze();  // Downsample target
+                downsampled
             })
             .collect();
+
         TerrainBatch {
             inputs: Tensor::cat(inputs, 0),
             targets: Tensor::cat(targets, 0),

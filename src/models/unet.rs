@@ -130,7 +130,8 @@ impl<B: Backend> UNet<B> {
 mod tests {
     use super::*;
     use burn::tensor::{Shape, Tensor};
-    use burn::backend::Wgpu;
+    use burn::backend::{Wgpu,Autodiff};
+    use serial_test::serial;
 
     #[test]
     fn test_unet_forward_pass() {
@@ -153,6 +154,66 @@ mod tests {
 
         // Check that the output has the correct shape
         assert_eq!(output.shape(), Shape::new([batch_size, 1, height, width]));
+    }
+
+    #[test]
+    #[serial]
+    fn test_unet_backward_pass_autodiff() {
+        type MyBackend = Wgpu<f32, i32>;
+        let device = burn::backend::wgpu::WgpuDevice::default();
+
+        let unet_pp: UNet<Autodiff<MyBackend>> = UNet::init(1, 1, &device);
+
+        let batch_size = 1;
+        let height = 32;
+        let width = 32;
+
+        let input = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device).require_grad();
+
+        // Create a random target tensor with the same shape as the output
+        let target = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device);
+
+        // Perform a forward pass
+        let output = unet_pp.forward(input.clone());
+
+        // Compute the Mean Squared Error (MSE) loss
+        let loss = burn::nn::loss::MseLoss::new()
+            .forward(output, target, burn::nn::loss::Reduction::Mean);
+
+        println!("Loss: {:?}", loss);
+
+        // Perform the backward pass
+        loss.backward(); // This computes the gradients
+    }
+
+    #[test]
+    #[serial]
+    fn test_unet_backward_pass_autodiff_ndarray() {
+        type MyBackend = burn::backend::ndarray::NdArray;
+        let device = burn::backend::ndarray::NdArrayDevice::default();
+
+        let unet_pp: UNet<Autodiff<MyBackend>> = UNet::init(1, 1, &device);
+
+        let batch_size = 1;
+        let height = 32;
+        let width = 32;
+
+        let input = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device).require_grad();
+
+        // Create a random target tensor with the same shape as the output
+        let target = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device);
+
+        // Perform a forward pass
+        let output = unet_pp.forward(input.clone());
+
+        // Compute the Mean Squared Error (MSE) loss
+        let loss = burn::nn::loss::MseLoss::new()
+            .forward(output, target, burn::nn::loss::Reduction::Mean);
+
+        println!("Loss: {:?}", loss);
+
+        // Perform the backward pass
+        loss.backward(); // This computes the gradients
     }
 
 

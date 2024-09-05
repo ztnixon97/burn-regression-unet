@@ -86,7 +86,6 @@ impl<B: Backend> GeoTiffDataset<B> {
         // Calculate the number of elements for the selected input bands and target (1 band)
         let num_elements_input = self.input_bands.len() * width * height;
 
-    
         // The total number of elements in the file, assuming all 9 bands are present
         let total_num_elements = 9 * width * height;
     

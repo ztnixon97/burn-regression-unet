@@ -130,9 +130,11 @@ mod tests {
     use burn::tensor::{Shape, Tensor};
     use burn::backend::Wgpu;
     use burn::backend::Autodiff;
+    use serial_test::serial;
 
 
     #[test]
+    #[serial]
     fn test_simple_unet_forward_pass() {
         // Initialize device
         type MyBackend = Wgpu<f32, i32>;
@@ -144,8 +146,8 @@ mod tests {
 
         // Create a random input tensor with shape (batch_size, channels, height, width)
         let batch_size = 1;
-        let height = 64;
-        let width = 64;
+        let height = 32;
+        let width = 32;
         let input = Tensor::random(Shape::new([batch_size, 3, height, width]), burn::tensor::Distribution::Default, &device);
 
         // Perform a forward pass
@@ -156,6 +158,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_simple_unet_backward_pass() {
         // Initialize device
         type MyBackend = Wgpu<f32, i32>;
@@ -167,8 +170,8 @@ mod tests {
 
         // Create a random input tensor with shape (batch_size, channels, height, width)
         let batch_size = 1;
-        let height = 64;
-        let width = 64;
+        let height = 32;
+        let width = 32;
         let input = Tensor::random(Shape::new([batch_size, 3, height, width]), burn::tensor::Distribution::Default, &device);
 
         // Create a random target tensor with the same shape as the output
@@ -185,6 +188,7 @@ mod tests {
 
     }
     #[test]
+    #[serial]
     fn test_simple_unet_backward_pass_autodiff() {
         // Initialize device
         type MyBackend = Wgpu<f32, i32>;
@@ -192,13 +196,13 @@ mod tests {
         let device = burn::backend::wgpu::WgpuDevice::default();
 
         // Create a SimpleUNet model with 3 input channels and 1 output channel
-        let mut simple_unet: SimpleUNet<Autodiff<MyBackend>> = SimpleUNet::init(3, 1, &device);
+        let simple_unet: SimpleUNet<Autodiff<MyBackend>> = SimpleUNet::init(1, 1, &device);
 
         // Create a random input tensor with shape (batch_size, channels, height, width)
         let batch_size = 1;
-        let height = 64;
-        let width = 64;
-        let input = Tensor::random(Shape::new([batch_size, 3, height, width]), burn::tensor::Distribution::Default, &device).require_grad();
+        let height = 32;
+        let width = 32;
+        let input = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device).require_grad();
 
         // Create a random target tensor with the same shape as the output
         let target = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device);
@@ -213,6 +217,40 @@ mod tests {
         println!("Loss: {:?}", loss);
 
         // Perform the backward pass
-        let _grads = loss.backward(); // This computes the gradients
+        loss.backward(); // This computes the gradients
+    }
+    #[test]
+    #[serial]
+    fn test_simple_unet_backward_pass_autodiff_ndarray() {
+        // Initialize device
+        type MyBackend = burn::backend::ndarray::NdArray;
+
+
+        let device = burn::backend::ndarray::NdArrayDevice::default();
+
+
+        // Create a SimpleUNet model with 3 input channels and 1 output channel
+        let simple_unet: SimpleUNet<Autodiff<MyBackend>> = SimpleUNet::init(1, 1, &device);
+
+        // Create a random input tensor with shape (batch_size, channels, height, width)
+        let batch_size = 1;
+        let height = 32;
+        let width = 32;
+        let input = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device).require_grad();
+
+        // Create a random target tensor with the same shape as the output
+        let target = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device);
+
+        // Perform a forward pass
+        let output = simple_unet.forward(input.clone());
+
+        // Compute the Mean Squared Error (MSE) loss
+        let loss = burn::nn::loss::MseLoss::new()
+            .forward(output, target, burn::nn::loss::Reduction::Mean);
+
+        println!("Loss: {:?}", loss);
+
+        // Perform the backward pass
+        loss.backward(); // This computes the gradients
     }
 }

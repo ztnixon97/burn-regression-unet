@@ -1,17 +1,21 @@
 use burn::{
-    backend::Autodiff, data::dataloader::DataLoaderBuilder, optim::AdamConfig, prelude::*, record::CompactRecorder, tensor::{backend::{AutodiffBackend, Backend}, Tensor}, train::{
-        metric::LossMetric, LearnerBuilder,
+    backend::Autodiff, data::dataloader::DataLoaderBuilder,
+     optim::AdamConfig, prelude::*, record::CompactRecorder,
+      tensor::{backend::{AutodiffBackend, Backend}, Tensor},
+       train::{
+        metric::{Adaptor, LossInput, LossMetric}, LearnerBuilder,
     }
 };
 
 
 use burn::train::TrainOutput;
 
-const INPUT_CHANNELS: usize = 1;
+const INPUT_CHANNELS: usize = 8;
 #[cfg(feature="ndarray")]
 use burn::backend::ndarray::NdArray;
 #[cfg(not(feature="ndarray"))]
 use burn::backend::Wgpu;
+
 
 pub mod models;
 pub mod dataset;
@@ -21,8 +25,32 @@ use dataset::data::{TerrainBatch, TerrainBatcher, TerrainDataset};
 use burn::nn::loss::MseLoss;
 use burn::train::TrainStep;
 use burn::train::ValidStep;
-use burn::train::RegressionOutput;
 
+
+
+
+pub struct RegressionOutput4d<B: Backend> {
+    /// The loss.
+    pub loss: Tensor<B, 1>,
+
+    /// The output.
+    pub output: Tensor<B, 4>,
+
+    /// The targets.
+    pub targets: Tensor<B, 4>,
+}
+
+impl<B: Backend> RegressionOutput4d<B> {
+    pub fn new(loss: Tensor<B, 1>, output: Tensor<B, 4>, targets: Tensor<B, 4>) -> Self {
+        Self { loss, output, targets }
+    }
+}
+
+impl<B: Backend> Adaptor<LossInput<B>> for RegressionOutput4d<B> {
+    fn adapt(&self) -> LossInput<B> {
+        LossInput::new(self.loss.clone())
+    }
+}
 
 #[derive(Config, Debug)]
 pub struct UnetConfig {
@@ -61,20 +89,22 @@ impl<B: Backend> UNet<B> {
         &self,
         images: Tensor<B, 4>, // Input shape: (batch_size, channels, height, width)
         targets: Tensor<B, 4>, // Target shape: (batch_size, channels, height, width)
-    ) -> RegressionOutput<B> {
+    ) -> RegressionOutput4d<B> {
         // Forward pass through the model
         let output = self.forward(images); 
+
+        println!("Output: {:?}", output.clone());
         
         // Flatten spatial dimensions (height and width) into a single dimension
-        let output = output.flatten(1, 3); // Resulting shape: (batch_size, channels * height * width)
-        let targets = targets.flatten(1, 3); // Ensure targets have the same shape
+        let output = output; // Resulting shape: (batch_size, channels * height * width)
+        let targets = targets; // Ensure targets have the same shape
 
         // Calculate MSE loss
         let loss = MseLoss::new()
             .forward(output.clone(), targets.clone(), nn::loss::Reduction::Mean);
-        println!("Loss: {:?}", loss.clone());
+        //println!("Loss: {:?}", loss.clone());
         // Return the regression output struct
-        RegressionOutput::new(loss, output, targets)
+        RegressionOutput4d::new(loss, output, targets)
     }
 }
 
@@ -85,36 +115,35 @@ impl<B: Backend> UNetPlusPlus<B> {
         &self,
         images: Tensor<B, 4>, // Input shape (batch_size, channels, height, width)
         targets: Tensor<B, 4>, // Target shape (batch_size, channels, height, width)
-    ) -> RegressionOutput<B> {
-        let output = self.forward(images)
-            .flatten(2, 3); // Flatten spatial dimensions to match the target shape
+    ) -> RegressionOutput4d<B> {
+        let output = self.forward(images); // Flatten spatial dimensions to match the target shape
 
-        let targets = targets.flatten(2, 3); // Flatten targets in the same way
+        let targets = targets; // Flatten targets in the same way
 
         let loss = MseLoss::new()
             .forward(output.clone(), targets.clone(), nn::loss::Reduction::Mean);
 
-        RegressionOutput::new(loss, output, targets)
+        RegressionOutput4d::new(loss, output, targets)
     }
 }
 
-impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput<B>> for UNetPlusPlus<B> {
-    fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput<B>> {
+impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNetPlusPlus<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput4d<B>> {
         // Perform the forward pass and compute the output
         let item = self.forward_regression(batch.inputs, batch.targets);
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
 
-impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput<B>> for UNetPlusPlus<B> {
-    fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput<B> {
+impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNetPlusPlus<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput4d<B> {
         // Perform the forward pass
         self.forward_regression(batch.inputs, batch.targets)
     }
 }
 
-impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput<B>> for UNet<B> {
-    fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput<B>> {
+impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNet<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput4d<B>> {
         // Perform the forward pass and compute the output
 
         let item = self.forward_regression(batch.inputs, batch.targets);
@@ -122,8 +151,8 @@ impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput<B>> for UNe
     }
 }
 
-impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput<B>> for UNet<B> {
-    fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput<B> {
+impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNet<B> {
+    fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput4d<B> {
         // Perform the forward pass
         self.forward_regression(batch.inputs, batch.targets)
     }
@@ -134,9 +163,9 @@ impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput<B>> for UNet<B> {
 pub struct TrainingConfig {
     pub model: UnetPlusPlusConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 10)]
+    #[config(default = 100)]
     pub num_epochs: usize,
-    #[config(default = 2)]
+    #[config(default = 1)]
     pub batch_size: usize,
     #[config(default = 1)]
     pub num_workers: usize,
@@ -150,7 +179,7 @@ pub struct TrainingConfig {
 pub struct TrainingConfigUnet {
     pub model: UnetConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 10)]
+    #[config(default = 100)]
     pub num_epochs: usize,
     #[config(default = 1)]
     pub batch_size: usize,
@@ -168,7 +197,7 @@ fn create_artifact_dir(artifact_dir: &str) {
     std::fs::create_dir_all(artifact_dir).ok();
 }
 
-fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfigUnet, device: B::Device) {
+fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfig, device: B::Device) {
     create_artifact_dir(artifact_dir);
 
     let model = config.model.init(&device);
@@ -254,13 +283,13 @@ fn main() {
 
         let device = burn::backend::wgpu::WgpuDevice::DiscreteGpu(0);
         // Create a UNet++ configuration
-        let model_config = UnetConfig {
+        let model_config = UnetPlusPlusConfig {
             in_channels: INPUT_CHANNELS,
             out_channels: 1,
         };
 
         // Create a training configuration
-        let training_config = TrainingConfigUnet::new(model_config, AdamConfig::new());
+        let training_config = TrainingConfig::new(model_config, AdamConfig::new());
 
         // Start training
         train::<MyAutodiffBackend>(
