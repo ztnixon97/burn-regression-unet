@@ -216,5 +216,62 @@ mod tests {
         loss.backward(); // This computes the gradients
     }
 
+    #[test]
+    #[serial]
+    fn test_unet_forward_pass_torch() {
+        // Initialize device using Torch backend
+        type MyBackend = burn::backend::libtorch::LibTorch;
 
+        let device = burn::backend::libtorch::LibTorchDevice::Cpu;
+
+        // Create a UNet++ model with 1 input channel and 1 output channel
+        let unet_pp: UNet<MyBackend> = UNet::init(1, 1, &device);
+
+        // Create a random input tensor with shape (batch_size, channels, height, width)
+        let batch_size = 1;
+        let height = 64;
+        let width = 64;
+        let input = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device);
+
+        // Perform a forward pass
+        let output = unet_pp.forward(input);
+
+        // Check that the output has the correct shape
+        assert_eq!(output.shape(), Shape::new([batch_size, 1, height, width]));
+    }
+
+    #[test]
+    #[serial]
+    fn test_unet_backward_pass_torch() {
+        // Use NdArray backend that supports autodiff
+        type MyBackend = Autodiff<burn::backend::libtorch::LibTorch>;
+
+        let device = burn::backend::libtorch::LibTorchDevice::Cpu;
+
+        // Create a UNet++ model with 1 input channel and 1 output channel
+        let unet_pp: UNet<MyBackend> = UNet::init(1, 1, &device);
+
+        let batch_size = 1;
+        let height = 32;
+        let width = 32;
+
+        // Create a random input tensor and mark it as requiring gradients
+        let input = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device).require_grad();
+
+        // Create a random target tensor with the same shape as the output
+        let target = Tensor::random(Shape::new([batch_size, 1, height, width]), burn::tensor::Distribution::Default, &device);
+
+        // Perform a forward pass
+        let output = unet_pp.forward(input.clone());
+
+        // Compute the Mean Squared Error (MSE) loss
+        let loss = burn::nn::loss::MseLoss::new()
+            .forward(output, target, burn::nn::loss::Reduction::Mean);
+
+        // Perform the backward pass to compute gradients
+        loss.backward(); // This computes the gradients
+    }
 }
+
+
+

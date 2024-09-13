@@ -76,6 +76,7 @@ impl<B: Backend> NestedConvOld<B> {
 
         for (i, &skip) in skips.iter().enumerate() {
             let skip_out = self.skips[i].forward(skip.clone());
+            
 
             // Get the current shape of 'out'
             let shape = out.shape().dims;
@@ -139,18 +140,22 @@ pub struct NestedConv<B: Backend> {
 }
 
 impl<B: Backend> NestedConv<B> {
-    // Now the function accepts borrowed references to tensors
     pub fn forward(&self, x: Tensor<B, 4>, skips: &[&Tensor<B, 4>]) -> Tensor<B, 4> {
+        // Print the shape of the input tensor `x`
         let shape = x.shape().dims;
+        
         let output_size = [shape[2], shape[3]];  // Get height and width of `x`
-    
-        let mut all_skips = Vec::with_capacity(skips.len());
-    
-        // Iterate over all skip connections
-        for skip in skips.iter() {
+        
+        let mut all_skips = Vec::with_capacity(skips.len() + 1);
+        all_skips.push(x.clone());
+
+        // Iterate over all skip connections and resize if necessary
+        for (_i, skip) in skips.iter().enumerate() {
             let skip_shape = skip.shape().dims;
-    
-            // If the spatial dimensions of the skip don't match `x`, upsample it
+
+            // Print the shape of the skip connection before any resizing
+            
+            // Upsample skip connections if needed
             let skip: Tensor<B, 4> = if skip_shape[2] != shape[2] || skip_shape[3] != shape[3] {
                 interpolate(
                     (*skip).clone(),
@@ -160,41 +165,47 @@ impl<B: Backend> NestedConv<B> {
             } else {
                 (*skip).clone()
             };
-    
+
+            // Print the shape of the skip connection after interpolation
+            
+            
             all_skips.push(skip);
         }
-    
-        // Concatenate all skip connections with the input `x`
-        let x = Tensor::cat((&[x, Tensor::cat(all_skips, 1)]).to_vec(), 1);  // Concatenate along channel dimension
-        // Forward pass through the convolutional layers
+
+        // Concatenate the input tensor `x` with all the skip connections
+        let x = Tensor::cat(all_skips, 1);
+        
+        // Forward pass through conv layers
         let x = self.conv1.forward(x);
         let x = self.bn1.forward(x);
         let x = self.activation.forward(x);
-    
         let x = self.conv2.forward(x);
         let x = self.bn2.forward(x);
         let output = self.activation.forward(x);
-    
+        
         output
     }
-    
-    
 }
+
+
 
 
 
 #[derive(Debug)]
 pub struct NestedConvConfig {
-    in_channels: usize,
+    in_channels: usize,  // This will be dynamically calculated
     mid_channels: usize,
     out_channels: usize,
 }
 
 impl NestedConvConfig {
-    pub fn new (in_channels: usize, mid_channels: usize, out_channels: usize) -> Self {
+    // `in_channels` needs to be the sum of input and skip connections
+    pub fn new(in_channels: usize, mid_channels: usize, out_channels: usize) -> Self {
         Self { in_channels, mid_channels, out_channels }
     }
-    pub fn init<B:Backend>(&self, device: &B::Device) -> NestedConv<B> {
+    
+    pub fn init<B: Backend>(&self, device: &B::Device) -> NestedConv<B> {
+        // Use dynamically calculated in_channels for the first conv layer
         let conv1 = Conv2dConfig::new([self.in_channels, self.mid_channels], [3, 3])
             .with_padding(PaddingConfig2d::Explicit(1, 1))
             .init(device);

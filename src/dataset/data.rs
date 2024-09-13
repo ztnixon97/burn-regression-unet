@@ -133,13 +133,18 @@ impl<B: Backend> TerrainBatcher<B> {
     }
 
     fn downsample(&self, tensor: Tensor<B, 3>) -> Tensor<B, 3> {
-        let tensor = tensor.unsqueeze();  // Add a batch dimension
         let output_size = [32, 32];
-        interpolate(
-            tensor,
-            output_size,  // New dimensions after downsampling
-            InterpolateOptions::new(InterpolateMode::Nearest),  // Nearest neighbor interpolation
-        ).squeeze(0)
+        let run = true;
+        if run == true {
+            let tensor = tensor.unsqueeze();
+            interpolate(
+                tensor,
+                output_size,  // New dimensions after downsampling
+                InterpolateOptions::new(InterpolateMode::Bilinear),  // Bilinear interpolation
+            ).squeeze(0)
+        } else {
+            tensor
+        }
     }
 }
 #[derive(Clone, Debug)]
@@ -204,7 +209,7 @@ mod tests {
         type MyBackend = NdArray;
 
         let device = burn::backend::ndarray::NdArrayDevice::default();
-        let input_bands = vec![1];
+        let input_bands = vec![1,2,3,4,5,6,7,8];
         let raw_items = TerrainDataset::load_folder("F:/test_data/train", input_bands);
         let in_mem_dataset = InMemDataset::new(raw_items);
         let mapped_dataset = MapperDataset::new(in_mem_dataset, BytesToTensorData);
@@ -218,7 +223,7 @@ mod tests {
             let input: Tensor<MyBackend, 3> = Tensor::from_floats(item.input.clone(), &device);
             let target: Tensor<MyBackend, 3> = Tensor::from_floats(item.target.clone(), &device);
 
-            assert_eq!(input.shape(), Shape::new([1, HEIGHT as usize, WIDTH as usize]), "Input tensor shape mismatch");
+            assert_eq!(input.shape(), Shape::new([INPUT_CHANNELS as usize, HEIGHT as usize, WIDTH as usize]), "Input tensor shape mismatch");
             assert_eq!(target.shape(), Shape::new([1, HEIGHT as usize, WIDTH as usize]), "Target tensor shape mismatch");
         } else {
             panic!("Failed to retrieve item from dataset");
@@ -229,7 +234,7 @@ mod tests {
     fn test_batcher() {
         type MyBackend = NdArray;
         let device = burn::backend::ndarray::NdArrayDevice::default();
-        let input_bands = vec![1];
+        let input_bands = vec![1,2,3,4,5,6,7,8];
 
         let raw_items = TerrainDataset::load_folder("F:/test_data/train", input_bands);
         let in_mem_dataset = InMemDataset::new(raw_items);
@@ -242,7 +247,7 @@ mod tests {
         let items: Vec<_> = (0..terrain_dataset.len()).filter_map(|i| terrain_dataset.get(i)).collect();
         let batch = batcher.batch(items.clone());
 
-        assert_eq!(batch.inputs.shape(), Shape::new([items.len(), 1, HEIGHT as usize, WIDTH as usize]), "Input batch shape mismatch");
+        assert_eq!(batch.inputs.shape(), Shape::new([items.len(), INPUT_CHANNELS as usize, HEIGHT as usize, WIDTH as usize]), "Input batch shape mismatch");
         assert_eq!(batch.targets.shape(), Shape::new([items.len(), 1, HEIGHT as usize, WIDTH as usize]), "Target batch shape mismatch");
 
     }

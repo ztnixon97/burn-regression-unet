@@ -1,11 +1,13 @@
 use burn::{
-    backend::Autodiff, data::dataloader::DataLoaderBuilder,
+    backend::{libtorch::{LibTorch, LibTorchDevice}, wgpu::WgpuDevice, Autodiff}, data::dataloader::DataLoaderBuilder,
      optim::AdamConfig, prelude::*, record::CompactRecorder,
       tensor::{backend::{AutodiffBackend, Backend}, Tensor},
        train::{
         metric::{Adaptor, LossInput, LossMetric}, LearnerBuilder,
     }
 };
+
+
 
 
 use burn::train::TrainOutput;
@@ -93,7 +95,7 @@ impl<B: Backend> UNet<B> {
         // Forward pass through the model
         let output = self.forward(images); 
 
-        println!("Output: {:?}", output.clone());
+        //println!("Output: {:?}", output.clone());
         
         // Flatten spatial dimensions (height and width) into a single dimension
         let output = output; // Resulting shape: (batch_size, channels * height * width)
@@ -163,7 +165,7 @@ impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNet<B> {
 pub struct TrainingConfig {
     pub model: UnetPlusPlusConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 100)]
+    #[config(default = 2)]
     pub num_epochs: usize,
     #[config(default = 1)]
     pub batch_size: usize,
@@ -214,7 +216,7 @@ fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfig, device:
         .batch_size(1)
         .shuffle(config.seed)
         .num_workers(1)
-        .build(TerrainDataset::test());
+        .build(TerrainDataset::train());
     let dataloader_test = DataLoaderBuilder::new(batcher_valid)
         .batch_size(1)
         .shuffle(config.seed)
@@ -261,13 +263,13 @@ fn main() {
 
         let device = burn::backend::ndarray::NdArrayDevice::default();
         // Create a UNet++ configuration
-        let model_config = UnetConfig {
+        let model_config = UnetPlusPlusConfig {
             in_channels: INPUT_CHANNELS,
             out_channels: 1,
         };
 
         // Create a training configuration
-        let training_config = TrainingConfigUnet::new(model_config, AdamConfig::new());
+        let training_config = TrainingConfig::new(model_config, AdamConfig::new());
 
         // Start training
         train::<MyAutodiffBackend>(
@@ -276,12 +278,13 @@ fn main() {
             device,
         );
     }
-    #[cfg(not(feature="ndarray"))]
+    #[cfg(feature="torch")]
     {
-        type MyBackend = Wgpu<f32, i32>;
-        type MyAutodiffBackend = Autodiff<MyBackend>;
+        type TchBackend = LibTorch;
+        type MyAutodiffBackend = Autodiff<TchBackend>;
 
-        let device = burn::backend::wgpu::WgpuDevice::DiscreteGpu(0);
+        //let device = burn::backend::wgpu::WgpuDevice::BestAvailable;
+        let device = LibTorchDevice::Cpu;
         // Create a UNet++ configuration
         let model_config = UnetPlusPlusConfig {
             in_channels: INPUT_CHANNELS,
@@ -298,4 +301,81 @@ fn main() {
             device,
         );
     }
+    #[cfg(feature="wgpu")]
+    {
+        type MyBackend = Wgpu<f32, i32>;
+        type MyAutodiffBackend = Autodiff<MyBackend>;
+
+        //let device = burn::backend::wgpu::WgpuDevice::BestAvailable;
+        let device = WgpuDevice::BestAvailable;
+        // Create a UNet++ configuration
+        let model_config = UnetPlusPlusConfig {
+            in_channels: INPUT_CHANNELS,
+            out_channels: 1,
+        };
+
+        // Create a training configuration
+        let training_config = TrainingConfig::new(model_config, AdamConfig::new());
+
+        // Start training
+        train::<MyAutodiffBackend>(
+            "G:/burn-unet/learner",
+            training_config,
+            device,
+        );
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use burn::tensor::{backend::Backend, Tensor, Shape};
+    use burn::backend::Autodiff;
+    use serial_test::serial;
+
+
+    // Function to test the model for a given input size
+    fn test_model<B: Backend>(size: usize) -> bool {
+        let device = B::Device::default();
+        let model_config = UnetPlusPlusConfig {
+            in_channels: 8,
+            out_channels: 1,
+        };
+
+        let model = model_config.init(&device);
+        // Perform the forward pass, ensuring that the input tensor is on the same device
+        let _output = model.forward(Tensor::<B, 4>::zeros(Shape::new([1, 8, size, size]), &device));
+        true // Forward pass succeeded
+    }
+    
+
+    #[test]
+    #[serial]
+    #[ignore = "This test will break other tests and should be run alone"]
+    fn test_largest_input_size() {
+        // Initialize the device and the model configuration
+        type MyBackend = burn::backend::wgpu::Wgpu<f32, i32>; 
+        type MyAutodiffBackend= Autodiff<MyBackend>; // Change backend as necessary
+        
+
+        let mut max_size = 16; // Start with 32x32
+
+        // Test for increasing powers of 2 until failure
+        while max_size <= 512 { // Test up to 512x512
+            println!("Testing model with input size {}x{}", max_size, max_size);
+
+            if test_model::<MyAutodiffBackend>(max_size) {
+                println!("Model succeeded with input size {}x{}", max_size, max_size);
+                max_size *= 2;  // Increase input size to the next power of 2
+            } else {
+                println!("Model failed with input size {}x{}", max_size, max_size);
+                break;
+            }
+        }
+
+        println!("Largest successful input size: {}x{}", max_size / 2, max_size / 2);
+
+        // Optionally, assert that the model can handle at least a certain size (e.g., 256x256)
+        assert!(max_size / 2 >= 128, "Model should handle at least 128x128 input size.");
+    }
+
 }

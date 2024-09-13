@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = {version = "0.14.0",features = ["train", "wgpu", "ndarray", "tui","fusion"] }
+burn = { version = "0.14.0", features = ["train", "wgpu", "ndarray", "tui", "fusion", "autotune", "tch"] }
 serde = { version = "1.0.208", features = ["alloc", "derive"] }
 walkdir = "2.5.0"
 gdal = { version = "0.17.0", features = ["array"], optional = true }
@@ -14,4 +14,6 @@ serial_test = "3.1.1"
 [features]
 default = []
 gdal = ["dep:gdal"] 
-ndarray = [] # Link the gdal dependency to the gdal feature
+ndarray = []
+torch = []
+wgpu = []
