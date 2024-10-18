@@ -1,5 +1,5 @@
 use burn::{
-    backend::{libtorch::{LibTorch, LibTorchDevice}, wgpu::WgpuDevice, Autodiff}, data::dataloader::DataLoaderBuilder,
+    backend::Autodiff, data::{dataloader::DataLoaderBuilder, dataset::SqliteDataset},
      optim::AdamConfig, prelude::*, record::CompactRecorder,
       tensor::{backend::{AutodiffBackend, Backend}, Tensor},
        train::{
@@ -21,13 +21,17 @@ use burn::backend::Wgpu;
 
 pub mod models;
 pub mod dataset;
+pub mod utils;
+
 use models::unetplusplus::UNetPlusPlus;
 use models::simple_unet::SimpleUNet as UNet;
-use dataset::data::{TerrainBatch, TerrainBatcher, TerrainDataset};
+use dataset::data::{TerrainBatch, TerrainBatcher, TerrainDataItemRaw, TerrainDataset};
 use burn::nn::loss::MseLoss;
+use burn::record::{FullPrecisionSettings, NamedMpkFileRecorder};
 use burn::train::TrainStep;
 use burn::train::ValidStep;
 
+use utils::plot_image::plot_input_vs_target;
 
 
 
@@ -106,6 +110,7 @@ impl<B: Backend> UNet<B> {
             .forward(output.clone(), targets.clone(), nn::loss::Reduction::Mean);
         //println!("Loss: {:?}", loss.clone());
         // Return the regression output struct
+        //let _ = plot_input_vs_target(output.clone(), targets.clone(), "G:/input_vs_target_with_gap.png");
         RegressionOutput4d::new(loss, output, targets)
     }
 }
@@ -116,7 +121,8 @@ impl<B: Backend> UNetPlusPlus<B> {
     pub fn forward_regression(
         &self,
         images: Tensor<B, 4>, // Input shape (batch_size, channels, height, width)
-        targets: Tensor<B, 4>, // Target shape (batch_size, channels, height, width)
+        targets: Tensor<B, 4>,
+        plot: bool,// Target shape (batch_size, channels, height, width)
     ) -> RegressionOutput4d<B> {
         let output = self.forward(images); // Flatten spatial dimensions to match the target shape
 
@@ -125,6 +131,9 @@ impl<B: Backend> UNetPlusPlus<B> {
         let loss = MseLoss::new()
             .forward(output.clone(), targets.clone(), nn::loss::Reduction::Mean);
 
+        if plot {
+            let _ = plot_input_vs_target(output.clone(), targets.clone(), "input_vs_target_with_gap.png");
+        }
         RegressionOutput4d::new(loss, output, targets)
     }
 }
@@ -132,7 +141,7 @@ impl<B: Backend> UNetPlusPlus<B> {
 impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNetPlusPlus<B> {
     fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput4d<B>> {
         // Perform the forward pass and compute the output
-        let item = self.forward_regression(batch.inputs, batch.targets);
+        let item = self.forward_regression(batch.inputs, batch.targets, false);
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
@@ -140,7 +149,7 @@ impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput4d<B>> for U
 impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNetPlusPlus<B> {
     fn step(&self, batch: TerrainBatch<B>) -> RegressionOutput4d<B> {
         // Perform the forward pass
-        self.forward_regression(batch.inputs, batch.targets)
+        self.forward_regression(batch.inputs, batch.targets, true)
     }
 }
 
@@ -165,11 +174,11 @@ impl<B: Backend> ValidStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNet<B> {
 pub struct TrainingConfig {
     pub model: UnetPlusPlusConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 2)]
+    #[config(default = 100)]
     pub num_epochs: usize,
-    #[config(default = 1)]
+    #[config(default = 10)]
     pub batch_size: usize,
-    #[config(default = 1)]
+    #[config(default = 15)]
     pub num_workers: usize,
     #[config(default = 42)]
     pub seed: u64,
@@ -185,7 +194,7 @@ pub struct TrainingConfigUnet {
     pub num_epochs: usize,
     #[config(default = 1)]
     pub batch_size: usize,
-    #[config(default = 1)]
+    #[config(default = 20)]
     pub num_workers: usize,
     #[config(default = 42)]
     pub seed: u64,
@@ -213,18 +222,17 @@ fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfig, device:
 
     // Create data loaders
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
-        .batch_size(1)
+        .batch_size(config.batch_size)
         .shuffle(config.seed)
-        .num_workers(1)
-        .build(TerrainDataset::train());
+        .num_workers(config.num_workers)
+        .build(TerrainDataset::<SqliteDataset<TerrainDataItemRaw>>::train_sqlite());
+
     let dataloader_test = DataLoaderBuilder::new(batcher_valid)
-        .batch_size(1)
-        .shuffle(config.seed)
-        .num_workers(1)
-        .build(TerrainDataset::test());
+        .batch_size(config.batch_size)
+        .num_workers(config.num_workers)
+        .build(TerrainDataset::<SqliteDataset<TerrainDataItemRaw>>::test_sqlite());
 
     
-
     // Initialize learner
     let learner = LearnerBuilder::new(artifact_dir)
         .metric_train_numeric(LossMetric::new())
@@ -247,9 +255,12 @@ fn train<B: AutodiffBackend>(artifact_dir: &str, config: TrainingConfig, device:
         .expect("Config should be saved successfully");
 
     // Save the trained model
+
+    let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
     model_trained
-        .save_file(format!("{artifact_dir}/model"), &CompactRecorder::new())
+        .save_file(format!("./model"), &recorder)
         .expect("Trained model should be saved successfully");
+
 }
 
 
@@ -280,6 +291,7 @@ fn main() {
     }
     #[cfg(feature="torch")]
     {
+        use burn::backend::libtorch::{LibTorch, LibTorchDevice};
         type TchBackend = LibTorch;
         type MyAutodiffBackend = Autodiff<TchBackend>;
 
@@ -303,6 +315,7 @@ fn main() {
     }
     #[cfg(feature="wgpu")]
     {
+        use burn::backend::wgpu::WgpuDevice;
         type MyBackend = Wgpu<f32, i32>;
         type MyAutodiffBackend = Autodiff<MyBackend>;
 

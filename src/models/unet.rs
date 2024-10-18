@@ -218,6 +218,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[cfg(feature = "torch")]
     fn test_unet_forward_pass_torch() {
         // Initialize device using Torch backend
         type MyBackend = burn::backend::libtorch::LibTorch;
@@ -242,6 +243,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[cfg(feature = "torch")]
     fn test_unet_backward_pass_torch() {
         // Use NdArray backend that supports autodiff
         type MyBackend = Autodiff<burn::backend::libtorch::LibTorch>;
