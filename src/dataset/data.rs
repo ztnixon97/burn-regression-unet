@@ -152,7 +152,7 @@ impl<B: Backend> TerrainBatcher<B> {
     }
 
     fn downsample(&self, tensor: Tensor<B, 3>) -> Tensor<B, 3> {
-        let output_size = [32, 32];
+        let output_size = [128, 128];
         let run = true;
 
         if run {

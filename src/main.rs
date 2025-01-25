@@ -141,7 +141,7 @@ impl<B: Backend> UNetPlusPlus<B> {
 impl<B: AutodiffBackend> TrainStep<TerrainBatch<B>, RegressionOutput4d<B>> for UNetPlusPlus<B> {
     fn step(&self, batch: TerrainBatch<B>) -> TrainOutput<RegressionOutput4d<B>> {
         // Perform the forward pass and compute the output
-        let item = self.forward_regression(batch.inputs, batch.targets, false);
+        let item = self.forward_regression(batch.inputs, batch.targets, true);
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
@@ -176,7 +176,7 @@ pub struct TrainingConfig {
     pub optimizer: AdamConfig,
     #[config(default = 100)]
     pub num_epochs: usize,
-    #[config(default = 10)]
+    #[config(default = 1)]
     pub batch_size: usize,
     #[config(default = 15)]
     pub num_workers: usize,

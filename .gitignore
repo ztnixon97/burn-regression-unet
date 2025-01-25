@@ -1,3 +1,5 @@
 /target
 /learner
 /.vscode
+*.png
+*.mpk
