@@ -141,8 +141,16 @@ pub struct NestedConv<B: Backend> {
 
 impl<B: Backend> NestedConv<B> {
     pub fn forward(&self, x: Tensor<B, 4>, skips: &[&Tensor<B, 4>]) -> Tensor<B, 4> {
+        // Optional: Enable debugging by setting this to true
+        let debug = false;
+        
         // Print the shape of the input tensor `x`
         let shape = x.shape().dims;
+        
+        if debug {
+            println!("NestedConv input shape: {:?}", shape);
+            println!("Number of skip connections: {}", skips.len());
+        }
         
         let output_size = [shape[2], shape[3]];  // Get height and width of `x`
         
@@ -150,13 +158,18 @@ impl<B: Backend> NestedConv<B> {
         all_skips.push(x.clone());
 
         // Iterate over all skip connections and resize if necessary
-        for (_i, skip) in skips.iter().enumerate() {
+        for (i, skip) in skips.iter().enumerate() {
             let skip_shape = skip.shape().dims;
 
-            // Print the shape of the skip connection before any resizing
-            
+            if debug {
+                println!("Skip {} shape before resize: {:?}", i, skip_shape);
+            }
+
             // Upsample skip connections if needed
             let skip: Tensor<B, 4> = if skip_shape[2] != shape[2] || skip_shape[3] != shape[3] {
+                if debug {
+                    println!("Resizing skip {} from {:?} to {:?}", i, skip_shape, [shape[0], shape[1], output_size[0], output_size[1]]);
+                }
                 interpolate(
                     (*skip).clone(),
                     output_size,  // Match height and width of `x`
@@ -166,14 +179,19 @@ impl<B: Backend> NestedConv<B> {
                 (*skip).clone()
             };
 
-            // Print the shape of the skip connection after interpolation
-            
+            if debug {
+                println!("Skip {} shape after resize: {:?}", i, skip.shape());
+            }
             
             all_skips.push(skip);
         }
 
         // Concatenate the input tensor `x` with all the skip connections
         let x = Tensor::cat(all_skips, 1);
+        
+        if debug {
+            println!("Concatenated tensor shape: {:?}", x.shape());
+        }
         
         // Forward pass through conv layers
         let x = self.conv1.forward(x);
@@ -182,6 +200,10 @@ impl<B: Backend> NestedConv<B> {
         let x = self.conv2.forward(x);
         let x = self.bn2.forward(x);
         let output = self.activation.forward(x);
+        
+        if debug {
+            println!("NestedConv output shape: {:?}", output.shape());
+        }
         
         output
     }

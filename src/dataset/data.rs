@@ -4,7 +4,7 @@ use burn::{
         dataset::{transform::{Mapper, MapperDataset}, Dataset, InMemDataset, SqliteDataset},
     },
     prelude::*,
-    tensor::{backend::Backend, module::interpolate, ops::{InterpolateMode, InterpolateOptions}},
+    tensor::{backend::Backend, Tensor, TensorData, Shape},
 };
 use std::{
     fs::File,
@@ -60,8 +60,8 @@ impl TerrainDataset<InMemDataset<TerrainDataItemRaw>> {
 
     fn new(split: &str) -> Self {
         let folder = match split {
-            "train" => "F:/test_data/train",
-            "test" => "F:/test_data/val",
+            "train" => "D:/test_data/train",
+            "test" => "D:/test_data/val",
             _ => panic!("Invalid split"),
         };
 
@@ -122,7 +122,7 @@ impl TerrainDataset<SqliteDataset<TerrainDataItemRaw>> {
     }
 
     fn new_sqlite(split: &str) -> Self {
-        let sqlite_dataset: SqliteDataset<TerrainDataItemRaw> = SqliteDataset::from_db_file("F:/2m_dsm_dtm_256px_py.db", split).unwrap();
+        let sqlite_dataset: SqliteDataset<TerrainDataItemRaw> = SqliteDataset::from_db_file("D:/2m_dsm_dtm_256px_py.db", split).unwrap();
         let dataset = MapperDataset::new(sqlite_dataset, BytesToTensorData);
         TerrainDataset { dataset }
     }
@@ -153,7 +153,7 @@ impl<B: Backend> TerrainBatcher<B> {
 
     fn downsample(&self, tensor: Tensor<B, 3>) -> Tensor<B, 3> {
         let output_size = [128, 128];
-        let run = true;
+        let run = false;
 
         if run {
             // Get the dimensions of the input tensor (channels, height, width)
@@ -169,9 +169,9 @@ impl<B: Backend> TerrainBatcher<B> {
 
             // Crop the tensor by passing the ranges for all dimensions at once
             tensor.slice([
-                None, // Keep all channels (no cropping on the first dimension)
-                Some((start_height as i64, (start_height + crop_height) as i64)), // Crop the height
-                Some((start_width as i64, (start_width + crop_width) as i64)),   // Crop the width
+                0..dims[0],
+                start_height..(start_height + crop_height), // Crop the height
+                start_width..(start_width + crop_width),   // Crop the width
             ])
         } else {
             tensor
@@ -185,13 +185,13 @@ pub struct TerrainBatch<B: Backend> {
     pub targets: Tensor<B, 4>,
 }
 
-impl<B: Backend> Batcher<TerrainDataItem, TerrainBatch<B>> for TerrainBatcher<B> {
-    fn batch(&self, items: Vec<TerrainDataItem>) -> TerrainBatch<B> {
+impl<B: Backend> Batcher<B, TerrainDataItem, TerrainBatch<B>> for TerrainBatcher<B> {
+    fn batch(&self, items: Vec<TerrainDataItem>, device: &B::Device) -> TerrainBatch<B> {
         // Collect and downsample the inputs
         let inputs: Vec<_> = items
             .iter()
             .map(|item| {
-                let tensor = Tensor::<B, 3>::from_floats(item.input.clone(), &self.device);
+                let tensor = Tensor::<B, 3>::from_floats(item.input.clone(), device);
                 let downsampled = self.downsample(tensor).unsqueeze(); // Downsample input
                 downsampled
             })
@@ -201,7 +201,7 @@ impl<B: Backend> Batcher<TerrainDataItem, TerrainBatch<B>> for TerrainBatcher<B>
         let targets: Vec<_> = items
             .iter()
             .map(|item| {
-                let tensor = Tensor::<B, 3>::from_floats(item.target.clone(), &self.device);
+                let tensor = Tensor::<B, 3>::from_floats(item.target.clone(), device);
                 let downsampled = self.downsample(tensor).unsqueeze(); // Downsample target
                 downsampled
             })
@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_load_folder() {
         let input_bands = vec![1, 2];
-        let data_items = TerrainDataset::<InMemDataset<TerrainDataItemRaw>>::load_folder("F:/test_data/train", input_bands);
+        let data_items = TerrainDataset::<InMemDataset<TerrainDataItemRaw>>::load_folder("D:/test_data/train", input_bands);
 
         assert!(!data_items.is_empty(), "The dataset should not be empty");
         println!("Loaded {} items", data_items.len());
@@ -240,7 +240,7 @@ mod tests {
 
         let device = burn::backend::ndarray::NdArrayDevice::default();
         let input_bands = vec![1, 2, 3, 4, 5, 6, 7, 8];
-        let raw_items = TerrainDataset::<InMemDataset<TerrainDataItemRaw>>::load_folder("F:/test_data/train", input_bands);
+        let raw_items = TerrainDataset::<InMemDataset<TerrainDataItemRaw>>::load_folder("D:/test_data/train", input_bands);
         let in_mem_dataset = InMemDataset::new(raw_items);
         let mapped_dataset = MapperDataset::new(in_mem_dataset, BytesToTensorData);
 
@@ -266,7 +266,7 @@ mod tests {
         let device = burn::backend::ndarray::NdArrayDevice::default();
         let input_bands = vec![1, 2, 3, 4, 5, 6, 7, 8];
 
-        let raw_items = TerrainDataset::<InMemDataset<TerrainDataItemRaw>>::load_folder("F:/test_data/train", input_bands);
+        let raw_items = TerrainDataset::<InMemDataset<TerrainDataItemRaw>>::load_folder("D:/test_data/train", input_bands);
         let in_mem_dataset = InMemDataset::new(raw_items);
         let mapped_dataset = MapperDataset::new(in_mem_dataset, BytesToTensorData);
 
@@ -275,7 +275,7 @@ mod tests {
         let batcher = TerrainBatcher::<MyBackend>::new(device);
 
         let items: Vec<_> = (0..terrain_dataset.len()).filter_map(|i| terrain_dataset.get(i)).collect();
-        let batch = batcher.batch(items.clone());
+        let batch = batcher.batch(items.clone(), &device);
 
         assert_eq!(batch.inputs.shape(), Shape::new([items.len(), INPUT_CHANNELS, HEIGHT, WIDTH]), "Input batch shape mismatch");
         assert_eq!(batch.targets.shape(), Shape::new([items.len(), 1, HEIGHT, WIDTH]), "Target batch shape mismatch");

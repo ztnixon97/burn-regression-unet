@@ -4,15 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = { version = "0.15.0", features = ["train", "wgpu", "ndarray", "tui", "fusion", "autotune"] }
-serde = { version = "1.0.208", features = ["alloc", "derive"] }
-walkdir = "2.5.0"
+burn = { version = "0.18.0", features = ["train", "wgpu", "ndarray", "tui", "fusion", "autotune", "tch"] }
+bytemuck = "1.23.1"
+colorous = "1.0.16"
 gdal = { version = "0.17.0", features = ["array"], optional = true }
-bytemuck = "1.17.0"
-serial_test = "3.1.1"
-plotters = "0.3.7"
-colorous = "1.0.14"
 ndarray = { version = "0.16.1", features = ["serde"] }
+plotters = "0.3.7"
+serde = { version = "1.0.219", features = ["alloc", "derive"] }
+serial_test = "3.2.0"
+walkdir = "2.5.0"
+
 
 [features]
 default = []
@@ -20,3 +21,4 @@ gdal = ["dep:gdal"]
 ndarray = []
 torch = []
 wgpu = []
+mamaba = []

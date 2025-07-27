@@ -182,12 +182,12 @@ impl<B: Backend> GeoTiffBatcher<B> {
     }
 }
 
-impl<B: Backend> Batcher<GeoTiffDatasetItem, GeoTiffBatch<B>> for GeoTiffBatcher<B> {
-    fn batch(&self, items: Vec<GeoTiffDatasetItem>) -> GeoTiffBatch<B> {
+impl<B: Backend> Batcher<B, GeoTiffDatasetItem, GeoTiffBatch<B>> for GeoTiffBatcher<B> {
+    fn batch(&self, items: Vec<GeoTiffDatasetItem>, device: &B::Device) -> GeoTiffBatch<B> {
         let inputs: Vec<_> = items
             .iter()
             .map(|item| {
-                let tensor = Tensor::<B,3>::from_floats(item.input.clone(), &self.device).unsqueeze();
+                let tensor = Tensor::<B,3>::from_floats(item.input.clone(), device).unsqueeze();
                 tensor
             })
             .collect();
@@ -195,7 +195,7 @@ impl<B: Backend> Batcher<GeoTiffDatasetItem, GeoTiffBatch<B>> for GeoTiffBatcher
         let targets: Vec<_> = items
             .iter()
             .map(|item| {
-                let tensor = Tensor::<B,3>::from_floats(item.target.clone(), &self.device).unsqueeze();
+                let tensor = Tensor::<B,3>::from_floats(item.target.clone(), device).unsqueeze();
                 tensor
             })
             .collect();

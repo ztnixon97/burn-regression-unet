@@ -1,0 +1,22 @@
+[package]
+name = "burn-unet"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+burn = { version = "0.15.0", features = ["train", "wgpu", "ndarray", "tui", "fusion", "autotune"] }
+serde = { version = "1.0.208", features = ["alloc", "derive"] }
+walkdir = "2.5.0"
+gdal = { version = "0.17.0", features = ["array"], optional = true }
+bytemuck = "1.17.0"
+serial_test = "3.1.1"
+plotters = "0.3.7"
+colorous = "1.0.14"
+ndarray = { version = "0.16.1", features = ["serde"] }
+
+[features]
+default = []
+gdal = ["dep:gdal"] 
+ndarray = []
+torch = []
+wgpu = []
